@@ -70,7 +70,7 @@ void setup_mqtt() {
   // Verbinden mit MQTT Broker
   while (!client.connected()) {
     Serial1.println("Verbindung mit MQTT Broker...");
-    if (client.connect("ESP8266Client", mqttUser, mqttPassword)) {
+    if (client.connect("ESP8266_LevelJet", mqttUser, mqttPassword)) {
       Serial1.println("MQTT Broker Verbunden");
     } else {
       Serial1.println("Fehler, rc=" + String(client.state()) + " Versuche es in 5 Sekunden erneut");
@@ -83,7 +83,7 @@ void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial1.println("Attempting MQTT connection...");
-    if (client.connect("ESP8266Client", mqttUser, mqttPassword)) {
+    if (client.connect("ESP8266_LevelJet", mqttUser, mqttPassword)) {
       Serial1.println("connected");
       // Hier können Sie Ihre MQTT-Abonnements hinzufügen
       client.subscribe("LevelJet/cmd/#");

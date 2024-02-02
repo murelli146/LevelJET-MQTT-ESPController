@@ -292,7 +292,7 @@ uint16_t crc_table[256] = {
 };
 
 void setup() {
-  // put your setup code here, to run once:gg
+  
   setupOTA();
   Serial.begin(19200, SERIAL_8N1);
   Serial1.begin(115200);
@@ -307,7 +307,7 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  
   ArduinoOTA.handle();
   // MQTT
   if (!client.connected()) {
@@ -327,6 +327,7 @@ void loop() {
       bufferIndex = 0;  // Zurücksetzen des Buffer-Index für den nächsten Datenblock
     }
   }
+ 
 }
 
 uint16_t crc16(uint8_t* data, size_t length) {
@@ -339,12 +340,27 @@ uint16_t crc16(uint8_t* data, size_t length) {
 }
 
 void processReceivedData(const uint8_t* data) {
+    Serial1.println("Empfangene Daten:");
+    for (int i = 0; i < DATA_LENGTH; ++i) {
+        if (data[i] < 0x10) {
+            Serial1.print("0"); // Fügt eine führende Null hinzu, wenn der Wert kleiner als 0x10 ist
+        }
+        Serial1.print(data[i], HEX);
+        Serial1.print(" "); // Fügt ein Leerzeichen zwischen den Bytes für bessere Lesbarkeit hinzu
+    }
+    Serial1.println(); // Fügt einen Zeilenumbruch nach der vollständigen Ausgabe hinzu
+
   unsigned long currentMillis = millis();
   // Berechnen des CRC über die ersten 10 Bytes der Daten
   uint16_t calculatedCRC = crc16((uint8_t*)data, 10);  // Cast zu non-const, da unsere Funktion non-const erwartet
 
   // Extrahieren des empfangenen CRC (angenommen, es ist in Big-Endian im Datenpaket)
-  uint16_t receivedCRC = (uint16_t)(data[10] << 8 | data[11]);
+  uint16_t receivedCRC = (uint16_t)(data[11] << 8 | data[10]);
+
+    Serial1.print("Empangenser CRC: ");
+    Serial1.println(receivedCRC, HEX);
+    Serial1.print("Berechneter CRC: ");
+    Serial1.println(calculatedCRC, HEX);
 
   // Vergleichen des berechneten CRC mit dem empfangenen CRC
   if (calculatedCRC == receivedCRC) {
@@ -358,15 +374,25 @@ void processReceivedData(const uint8_t* data) {
     unsigned char inhaltProzent = data[8];
     unsigned char zustandAusgaenge = data[9];
 
+    // Masken für die Bits, die die Ausgänge repräsentieren
+    unsigned char ausgang1Maske = 0b00010000; // Bit 4
+    unsigned char ausgang2Maske = 0b00100000; // Bit 5
+ 
+    // Extrahieren der Zustände der Ausgänge
+    bool ausgang1 = zustandAusgaenge & ausgang1Maske;
+    bool ausgang2 = zustandAusgaenge & ausgang2Maske;
+
+
     if (currentMillis - previousMillis >= cycleTime) {
 
       // MQTT publish
       client.publish("LevelJET/status/Kennung", String(geraetekennung).c_str());
       client.publish("LevelJET/status/Distanz", String(distanz).c_str());
       client.publish("LevelJET/status/Füllhöhe", String(fuellhoehe).c_str());
-      client.publish("LevelJET/status/Liter", String(liter).c_str());
+      client.publish("LevelJET/status/Liter", String(liter * 10).c_str());
       client.publish("LevelJET/status/Inhalt_Prozent", String(inhaltProzent).c_str());
-      client.publish("LevelJET/status/Output", String(zustandAusgaenge).c_str());
+      client.publish("LevelJET/status/Ausgang1", String(ausgang1).c_str());
+      client.publish("LevelJET/status/Ausgang2", String(ausgang2).c_str());
 
       previousMillis = currentMillis;
     }
@@ -378,11 +404,13 @@ void processReceivedData(const uint8_t* data) {
     Serial1.print("Füllhöhe: ");
     Serial1.println(fuellhoehe);
     Serial1.print("Liter: ");
-    Serial1.println(liter);
+    Serial1.println(liter * 10);
     Serial1.print("Inhalt in Prozent: ");
     Serial1.println(inhaltProzent);
-    Serial1.print("Zustand der Ausgänge: ");
-    Serial1.println(zustandAusgaenge);
+    Serial1.print("Ausgang 1: ");
+    Serial1.println(ausgang1 ? "1" : "0");
+    Serial1.print("Ausgang 2: ");
+    Serial1.println(ausgang2 ? "1" : "0");
 
   } else {
     Serial.print("CRC check failed: Calculated CRC = 0x");
@@ -391,51 +419,6 @@ void processReceivedData(const uint8_t* data) {
     Serial.println(receivedCRC, HEX);
   }
 }
-
-/*
-   if (currentMillis - previousMillis >= cycleTime) {
-
-      // MQTT publish
-      client.publish("LevelJET/status/Kennung", String(geraetekennung).c_str());
-      client.publish("LevelJET/status/Distanz", String(distanz).c_str());
-      client.publish("LevelJET/status/Füllhöhe", String(fuellhoehe).c_str());
-      client.publish("LevelJET/status/Liter", String(liter).c_str());
-      client.publish("LevelJET/status/Inhalt_Prozent", String(inhaltProzent).c_str());
-      client.publish("LevelJET/status/Output", String(zustandAusgaenge).c_str());
-
-      previousMillis = currentMillis;
-    }
-
-
-void processReceivedData(unsigned char* data) {
-    Serial1.println("Empfangene Daten:");
-    for (int i = 0; i < DATA_LENGTH; ++i) {
-        if (data[i] < 0x10) {
-            Serial1.print("0"); // Fügt eine führende Null hinzu, wenn der Wert kleiner als 0x10 ist
-        }
-        Serial1.print(data[i], HEX);
-        Serial1.print(" "); // Fügt ein Leerzeichen zwischen den Bytes für bessere Lesbarkeit hinzu
-    }
-    Serial1.println(); // Fügt einen Zeilenumbruch nach der vollständigen Ausgabe hinzu
-
- // Interpretation der Daten gemäß Protokoll
-  unsigned int gerätekennung = (unsigned int)(data[0] | data[1] << 8);
-  unsigned int distanz = (unsigned int)(data[2] | data[3] << 8);
-  unsigned int füllhöhe = (unsigned int)(data[4] | data[5] << 8);
-  unsigned int liter = (unsigned int)(data[6] | data[7] << 8);
-  unsigned char inhaltProzent = data[8];
-  unsigned char zustandAusgänge = data[9];
-  // CRC wird hier nicht verifiziert
-
-  // Debug-Ausgabe auf Serial1
-  Serial1.print("Gerätekennung: "); Serial1.println(gerätekennung);
-  Serial1.print("Distanz: "); Serial1.println(distanz);
-  Serial1.print("Füllhöhe: "); Serial1.println(füllhöhe);
-  Serial1.print("Liter: "); Serial1.println(liter);
-  Serial1.print("Inhalt in Prozent: "); Serial1.println(inhaltProzent);
-  Serial1.print("Zustand der Ausgänge: "); Serial1.println(zustandAusgänge);
-}
-*/
 
 void callback(char* topic, byte* message, unsigned int length) {
   // Erstelle einen String für das Thema und reserviere Speicher
@@ -463,3 +446,4 @@ void callback(char* topic, byte* message, unsigned int length) {
     }
   }
 }
+
