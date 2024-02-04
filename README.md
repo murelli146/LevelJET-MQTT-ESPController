@@ -94,6 +94,10 @@ Ein Datenblock umfasst 12 Bytes, davon 10 Datenbytes und zwei CRC-Bytes. Die Zuo
 - 9: Zustand der Ausgänge
 - 10-11: CRC
 
+## Dokumentation und Ressourcen
+- [Protokollbeschreibung LevelJET](http://www.projet.de/Software/Leveljet_seriell.pdf)
+- [Bedienungsanleitung LevelJET](http://www.projet.de/Software/LevelJET_ST.pdf)
+
 ## Beitragen
 
 Fühlen Sie sich frei, zum Projekt beizutragen. Jede Hilfe bei der Entwicklung, Dokumentation oder beim Testen ist willkommen. Bitte erstellen Sie Pull Requests für Ihre Beiträge.
