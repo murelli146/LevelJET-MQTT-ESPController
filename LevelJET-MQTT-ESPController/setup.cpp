@@ -84,6 +84,7 @@ void reconnect() {
   while (!client.connected()) {
     DEBUG_PRINTLN("Attempting MQTT connection...");
     if (client.connect("ESP8266_LevelJet", mqttUser, mqttPassword)) {
+      client.setCallback(callback); // Setze den Callback erneut
       DEBUG_PRINTLN("connected");
       // Hier können Sie Ihre MQTT-Abonnements hinzufügen
       client.subscribe("LevelJet/cmd/#");
