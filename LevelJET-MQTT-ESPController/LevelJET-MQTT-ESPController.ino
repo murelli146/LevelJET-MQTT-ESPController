@@ -292,10 +292,10 @@ uint16_t crc_table[256] = {
 };
 
 void setup() {
-  
+
   setupOTA();
   Serial.begin(19200, SERIAL_8N1);
-  Serial1.begin(115200);
+  DEBUG_INIT(115200);
   setup_wifi();
   setup_mqtt();
 
@@ -303,11 +303,12 @@ void setup() {
   client.subscribe("LevelJET/cmd/#");
 
 
-  Serial1.println("LevelJet Schnittstelle initialisiert");
+  DEBUG_PRINTLN("LevelJet Schnittstelle initialisiert");
+
 }
 
 void loop() {
-  
+
   ArduinoOTA.handle();
   // MQTT
   if (!client.connected()) {
@@ -340,15 +341,16 @@ uint16_t crc16(uint8_t* data, size_t length) {
 }
 
 void processReceivedData(const uint8_t* data) {
-    Serial1.println("Empfangene Daten:");
+    DEBUG_PRINTLN("Empfangene Daten:");
     for (int i = 0; i < DATA_LENGTH; ++i) {
         if (data[i] < 0x10) {
-            Serial1.print("0"); // Fügt eine führende Null hinzu, wenn der Wert kleiner als 0x10 ist
+            DEBUG_PRINT("0"); // Fügt eine führende Null hinzu, wenn der Wert kleiner als 0x10 ist
         }
-        Serial1.print(data[i], HEX);
-        Serial1.print(" "); // Fügt ein Leerzeichen zwischen den Bytes für bessere Lesbarkeit hinzu
+        DEBUG_PRINT_HEX(data[i]);
+        DEBUG_PRINT(" "); // Fügt ein Leerzeichen zwischen den Bytes für bessere Lesbarkeit hinzu
     }
-    Serial1.println(); // Fügt einen Zeilenumbruch nach der vollständigen Ausgabe hinzu
+    DEBUG_PRINTLN(); // Fügt einen Zeilenumbruch nach der vollständigen Ausgabe hinzu
+
 
   unsigned long currentMillis = millis();
   // Berechnen des CRC über die ersten 10 Bytes der Daten
@@ -357,14 +359,14 @@ void processReceivedData(const uint8_t* data) {
   // Extrahieren des empfangenen CRC (angenommen, es ist in Big-Endian im Datenpaket)
   uint16_t receivedCRC = (uint16_t)(data[11] << 8 | data[10]);
 
-    Serial1.print("Empangenser CRC: ");
-    Serial1.println(receivedCRC, HEX);
-    Serial1.print("Berechneter CRC: ");
-    Serial1.println(calculatedCRC, HEX);
+    DEBUG_PRINT("Empangenser CRC: ");
+    DEBUG_PRINTLN_HEX(receivedCRC);
+    DEBUG_PRINT("Berechneter CRC: ");
+    DEBUG_PRINTLN_HEX(calculatedCRC);
 
   // Vergleichen des berechneten CRC mit dem empfangenen CRC
   if (calculatedCRC == receivedCRC) {
-    Serial.println("CRC check passed");
+    DEBUG_PRINTLN("CRC check passed");
     // Weiterverarbeitung der Daten hier
     // Interpretation der Daten gemäß Protokoll
     unsigned int geraetekennung = (unsigned int)(data[0] | data[1] << 8);
@@ -393,30 +395,31 @@ void processReceivedData(const uint8_t* data) {
       client.publish("LevelJET/status/Inhalt_Prozent", String(inhaltProzent).c_str());
       client.publish("LevelJET/status/Ausgang1", String(ausgang1).c_str());
       client.publish("LevelJET/status/Ausgang2", String(ausgang2).c_str());
+      client.publish("LevelJET/status/sendezyklus", String(cycleTime / 1000).c_str());
 
       previousMillis = currentMillis;
     }
     // Debug-Ausgabe auf Serial1
-    Serial1.print("Gerätekennung: ");
-    Serial1.println(geraetekennung);
-    Serial1.print("Distanz: ");
-    Serial1.println(distanz);
-    Serial1.print("Füllhöhe: ");
-    Serial1.println(fuellhoehe);
-    Serial1.print("Liter: ");
-    Serial1.println(liter * 10);
-    Serial1.print("Inhalt in Prozent: ");
-    Serial1.println(inhaltProzent);
-    Serial1.print("Ausgang 1: ");
-    Serial1.println(ausgang1 ? "1" : "0");
-    Serial1.print("Ausgang 2: ");
-    Serial1.println(ausgang2 ? "1" : "0");
+    DEBUG_PRINT("Gerätekennung: ");
+    DEBUG_PRINTLN(geraetekennung);
+    DEBUG_PRINT("Distanz: ");
+    DEBUG_PRINTLN(distanz);
+    DEBUG_PRINT("Füllhöhe: ");
+    DEBUG_PRINTLN(fuellhoehe);
+    DEBUG_PRINT("Liter: ");
+    DEBUG_PRINTLN(liter * 10);
+    DEBUG_PRINT("Inhalt in Prozent: ");
+    DEBUG_PRINTLN(inhaltProzent);
+    DEBUG_PRINT("Ausgang 1: ");
+    DEBUG_PRINTLN(ausgang1 ? "1" : "0");
+    DEBUG_PRINT("Ausgang 2: ");
+    DEBUG_PRINTLN(ausgang2 ? "1" : "0");
 
   } else {
-    Serial.print("CRC check failed: Calculated CRC = 0x");
-    Serial.print(calculatedCRC, HEX);
-    Serial.print(", Received CRC = 0x");
-    Serial.println(receivedCRC, HEX);
+    DEBUG_PRINT("CRC check failed: Calculated CRC = 0x");
+    DEBUG_PRINT_HEX(calculatedCRC);
+    DEBUG_PRINT(", Received CRC = 0x");
+    DEBUG_PRINTLN_HEX(receivedCRC);
   }
 }
 
@@ -433,16 +436,17 @@ void callback(char* topic, byte* message, unsigned int length) {
     messageStr += (char)message[i];
   }
 
-  Serial1.print("Topic: ");
-  Serial1.println(topicStr);
+  DEBUG_PRINT("Topic: ");
+  DEBUG_PRINTLN(topicStr);
 
   // Verarbeite das Thema und die Nachricht
   if (topicStr == "LevelJET/cmd/sendezyklus") {
     int value = messageStr.toInt();
     if (value >= 10 && value <= 3600) {
       cycleTime = value * 1000;
-      Serial1.print("Neuer Sendezyklus: ");
-      Serial1.println(cycleTime / 1000);
+      DEBUG_PRINT("Neuer Sendezyklus: ");
+      DEBUG_PRINTLN(cycleTime / 1000);
+      client.publish("LevelJET/status/sendezyklus", String(cycleTime / 1000).c_str());
     }
   }
 }
