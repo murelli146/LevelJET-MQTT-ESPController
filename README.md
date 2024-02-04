@@ -1,6 +1,50 @@
+
 # LevelJET-MQTT-ESPController
 
+![Hardware](./pics/Hardware.png)
+
+## Über das Projekt
 Dieses Projekt ermöglicht die Anbindung eines LevelJET Füllstandmessgeräts an ein MQTT-Netzwerk mittels eines ESP8266 Mikrocontrollers. Es liest die Daten vom LevelJET-Gerät über eine serielle Verbindung und veröffentlicht die Messwerte über MQTT. Dies ermöglicht die Integration in Smart Home Systeme oder andere IoT-Anwendungen.
+
+### Hauptfunktionen
+
+- **Statusüberwachung:** Sendet Statusobjekte wie mit Füllstandsinformationen und Zustände der im LevelJET konfigurierbaren Hysteresenschalter.
+
+### Schnelleinrichtung
+
+1. **Arduino IDE:** Öffne `LevelJET-MQTT-ESPController.ino` in der Arduino IDE.
+2. **Konfiguration:** Gib SSID, Passwort und die IP-Adresse des MQTT-Brokers an.
+3. **Flashen:** Lade den Code auf den ESP-Mikrocontroller.
+4. **Hardware-Anschluss:** Verbinde die Hardware gemäß dem bereitgestellten Schaltplan mit dem RJ12-Port des LevelJET.
+5. **Fertig:** Dein System ist einsatzbereit!
+
+ACHTUNG! Grundsätzlich gilt: Nutzung auf eigenes Risiko!!!
+
+## Technische Details
+- **Mikrocontroller**: ESP8266
+- **Schnittstellenkonverter**: MAX3232
+- **Pegelwandler**: 5V auf 3,3V
+- **Kommunikation**: RJ12 Kabel
+- **Entwicklungsumgebung**: Arduino IDE
+
+![Schaltplan](./pics/Schaltplan.png)
+
+## MQTT-Datenpunkte
+
+### MQTT Subscribe Topics
+- `LevelJET/cmd/sendezyklus`: Setzt das Intervall für den automatischen Sendevorgang (in Sekunden).
+
+### MQTT Publish Topics
+
+- `LevelJET/status/Kennung`: Gerätekennung.
+- `LevelJET/status/Distanz`: Distanz.
+- `LevelJET/status/Füllhöhe`: Füllhöhe.
+- `LevelJET/status/Liter`: Liter.
+- `LevelJET/status/Inhalt_Prozent`: Inhalt in Prozent.
+- `LevelJET/status/Ausgang1`: Zustand der Ausgang 1.
+- `LevelJET/status/Ausgang2`: Zustand der Ausgang 2.
+- `LevelJET/status/sendezyklus`: Zykluszeit.
+
 
 ## Installation
 
@@ -8,7 +52,7 @@ Dieses Projekt ermöglicht die Anbindung eines LevelJET Füllstandmessgeräts an
 
 - Ein ESP8266 Mikrocontroller.
 - LevelJET Füllstandmessgerät.
-- Arduino IDE oder eine ähnliche Entwicklungsumgebung.
+- Arduino IDE.
 
 ### Setup
 
