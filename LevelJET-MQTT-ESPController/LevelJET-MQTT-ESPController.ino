@@ -3,6 +3,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoOTA.h>
+#include <ArduinoJson.h>
 
 #include "setup.h"
 #include "config.h"
@@ -304,7 +305,6 @@ void setup() {
 
 
   DEBUG_PRINTLN("LevelJet Schnittstelle initialisiert");
-
 }
 
 void loop() {
@@ -328,7 +328,6 @@ void loop() {
       bufferIndex = 0;  // Zurücksetzen des Buffer-Index für den nächsten Datenblock
     }
   }
- 
 }
 
 uint16_t crc16(uint8_t* data, size_t length) {
@@ -341,15 +340,15 @@ uint16_t crc16(uint8_t* data, size_t length) {
 }
 
 void processReceivedData(const uint8_t* data) {
-    DEBUG_PRINTLN("Empfangene Daten:");
-    for (int i = 0; i < DATA_LENGTH; ++i) {
-        if (data[i] < 0x10) {
-            DEBUG_PRINT("0"); // Fügt eine führende Null hinzu, wenn der Wert kleiner als 0x10 ist
-        }
-        DEBUG_PRINT_HEX(data[i]);
-        DEBUG_PRINT(" "); // Fügt ein Leerzeichen zwischen den Bytes für bessere Lesbarkeit hinzu
+  DEBUG_PRINTLN("Empfangene Daten:");
+  for (int i = 0; i < DATA_LENGTH; ++i) {
+    if (data[i] < 0x10) {
+      DEBUG_PRINT("0");  // Fügt eine führende Null hinzu, wenn der Wert kleiner als 0x10 ist
     }
-    DEBUG_PRINTLN(); // Fügt einen Zeilenumbruch nach der vollständigen Ausgabe hinzu
+    DEBUG_PRINT_HEX(data[i]);
+    DEBUG_PRINT(" ");  // Fügt ein Leerzeichen zwischen den Bytes für bessere Lesbarkeit hinzu
+  }
+  DEBUG_PRINTLN();  // Fügt einen Zeilenumbruch nach der vollständigen Ausgabe hinzu
 
 
   unsigned long currentMillis = millis();
@@ -359,10 +358,10 @@ void processReceivedData(const uint8_t* data) {
   // Extrahieren des empfangenen CRC (angenommen, es ist in Big-Endian im Datenpaket)
   uint16_t receivedCRC = (uint16_t)(data[11] << 8 | data[10]);
 
-    DEBUG_PRINT("Empangenser CRC: ");
-    DEBUG_PRINTLN_HEX(receivedCRC);
-    DEBUG_PRINT("Berechneter CRC: ");
-    DEBUG_PRINTLN_HEX(calculatedCRC);
+  DEBUG_PRINT("Empangenser CRC: ");
+  DEBUG_PRINTLN_HEX(receivedCRC);
+  DEBUG_PRINT("Berechneter CRC: ");
+  DEBUG_PRINTLN_HEX(calculatedCRC);
 
   // Vergleichen des berechneten CRC mit dem empfangenen CRC
   if (calculatedCRC == receivedCRC) {
@@ -377,17 +376,29 @@ void processReceivedData(const uint8_t* data) {
     unsigned char zustandAusgaenge = data[9];
 
     // Masken für die Bits, die die Ausgänge repräsentieren
-    unsigned char ausgang1Maske = 0b00010000; // Bit 4
-    unsigned char ausgang2Maske = 0b00100000; // Bit 5
- 
+    unsigned char ausgang1Maske = 0b00010000;  // Bit 4
+    unsigned char ausgang2Maske = 0b00100000;  // Bit 5
+
     // Extrahieren der Zustände der Ausgänge
     bool ausgang1 = zustandAusgaenge & ausgang1Maske;
     bool ausgang2 = zustandAusgaenge & ausgang2Maske;
 
 
     if (currentMillis - previousMillis >= cycleTime) {
+      StaticJsonDocument<512> doc;  // Umstellung auf JSON (doc)
+      char buffer[512];             // Umstellung auf  JSON  (doc)
 
       // MQTT publish
+      doc["Kennung"] = geraetekennung;
+      doc["Distanz"] = distanz;
+      doc["Fuellhoehe"] = fuellhoehe;
+      doc["Liter"] = liter * 10;
+      doc["Inhalt_Prozent"] = inhaltProzent;
+      doc["Ausgang1"] = ausgang1;
+      doc["Ausgang2"] = ausgang2;
+      doc["sendezyklus"] = cycleTime / 1000;
+
+      /* Umstellung auf JSON (doc)
       client.publish("LevelJET/status/Kennung", String(geraetekennung).c_str());
       client.publish("LevelJET/status/Distanz", String(distanz).c_str());
       client.publish("LevelJET/status/Füllhöhe", String(fuellhoehe).c_str());
@@ -396,6 +407,11 @@ void processReceivedData(const uint8_t* data) {
       client.publish("LevelJET/status/Ausgang1", String(ausgang1).c_str());
       client.publish("LevelJET/status/Ausgang2", String(ausgang2).c_str());
       client.publish("LevelJET/status/sendezyklus", String(cycleTime / 1000).c_str());
+      */
+
+      size_t len = serializeJson(doc, buffer, sizeof(buffer));
+      client.publish("LevelJET/status", buffer, len);
+      doc.clear();  // JSON-Dokument für den nächsten Abschnitt leeren
 
       previousMillis = currentMillis;
     }
@@ -450,4 +466,3 @@ void callback(char* topic, byte* message, unsigned int length) {
     }
   }
 }
-
